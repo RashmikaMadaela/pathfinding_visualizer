@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* Import 8-bit retro font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* Root CSS Variables for our 8-bit theme */
+:root {
+  /* Light mode colors - inspired by classic Game Boy palette */
+  --color-primary: #0f380f;
+  --color-secondary: #306230;
+  --color-accent: #8bac0f;
+  --color-light: #9bbc0f;
+  --color-bg: #f0f0e8;
+  --color-surface: #e8e8d8;
+  --color-border: #0f380f;
+  --color-text: #0f380f;
+  --color-text-secondary: #306230;
+}
+
+/* Dark mode colors - inspired by retro arcade machines */
+.dark {
+  --color-primary: #00ff41;
+  --color-secondary: #00d4aa;
+  --color-accent: #ff006e;
+  --color-light: #8338ec;
+  --color-bg: #0a0e27;
+  --color-surface: #1a1f3a;
+  --color-border: #00ff41;
+  --color-text: #00ff41;
+  --color-text-secondary: #00d4aa;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Press Start 2P', monospace, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  line-height: 1.6;
+}
+
+/* Custom 8-bit button styles */
+.btn-8bit {
+  font-family: 'Press Start 2P', monospace;
+  padding: 0.75rem 1.5rem;
+  border: 4px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  box-shadow: 4px 4px 0 var(--color-border);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+
+.btn-8bit:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--color-border);
+}
+
+.btn-8bit:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--color-border);
+}
+
+/* Primary button variant */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-bg);
+  border-color: var(--color-primary);
+}
+
+/* Secondary button variant */
+.btn-secondary {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+  border-color: var(--color-accent);
+}
+
+/* 8-bit input/select styles */
+.input-8bit, .select-8bit {
+  font-family: 'Press Start 2P', monospace;
+  padding: 0.5rem 1rem;
+  border: 3px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.75rem;
+}
+
+.select-8bit {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='square' stroke-linejoin='miter'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* 8-bit panel/card styles */
+.panel-8bit {
+  background-color: var(--color-surface);
+  border: 4px solid var(--color-border);
+  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+}
+
+/* Grid cell styles */
+.grid-cell {
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  transition: all 0.1s ease;
+}
+
+/* Pixelated effect for images */
+img {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Custom scrollbar - 8-bit style */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border: 2px solid var(--color-border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
