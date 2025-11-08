@@ -1,7 +1,7 @@
-@import "tailwindcss";
-
-/* Import 8-bit retro font from Google Fonts */
+/* Import 8-bit retro font from Google Fonts - Must be first! */
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+@import "tailwindcss";
 
 /* Root CSS Variables for our 8-bit theme */
 :root {
@@ -28,12 +28,6 @@
   --color-border: #00ff41;
   --color-text: #00ff41;
   --color-text-secondary: #00d4aa;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
 }
 
 body {

@@ -63,7 +63,7 @@ function App() {
 
         {/* Controls Panel */}
         <div className="panel-8bit mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl mb-4 border-b-4 border-current pb-2">
+          <h2 className="text-lg md:text-xl border-b-4 border-current" style={{ marginBottom: '1.5rem', paddingBottom: '0.75rem' }}>
             ⚙️ CONTROLS
           </h2>
           
@@ -155,7 +155,7 @@ function App() {
 
         {/* Legend Panel */}
         <div className="panel-8bit mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl mb-4 border-b-4 border-current pb-2">
+          <h2 className="text-lg md:text-xl border-b-4 border-current" style={{ marginBottom: '1.5rem', paddingBottom: '0.75rem' }}>
             📖 LEGEND
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
@@ -188,7 +188,7 @@ function App() {
 
         {/* Grid Visualization Area - Placeholder */}
         <div className="panel-8bit mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl mb-4 border-b-4 border-current pb-2">
+          <h2 className="text-lg md:text-xl border-b-4 border-current" style={{ marginBottom: '1.5rem', paddingBottom: '0.75rem' }}>
             🗺️ GRID
           </h2>
           <div className="bg-(--color-bg) p-4 border-4 border-dashed border-current min-h-[300px] md:min-h-[400px] flex items-center justify-center">
@@ -201,7 +201,7 @@ function App() {
 
         {/* Info Panel */}
         <div className="panel-8bit">
-          <h2 className="text-lg md:text-xl mb-4 border-b-4 border-current pb-2">
+          <h2 className="text-lg md:text-xl border-b-4 border-current" style={{ marginBottom: '1.5rem', paddingBottom: '0.75rem' }}>
             ℹ️ ALGORITHM INFO
           </h2>
           <div className="text-xs md:text-sm leading-relaxed space-y-3">
