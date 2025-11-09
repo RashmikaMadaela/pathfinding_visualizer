@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './index.css'
+import Grid from './components/Grid'
 
 function App() {
   // 🎓 LEARNING: useState Hook
@@ -33,16 +34,18 @@ function App() {
     <div className="min-h-screen transition-colors duration-300">
       {/* 🎓 LEARNING: Responsive Layout with Tailwind
           - min-h-screen: minimum height of viewport
-          - p-4 to p-8: padding increases on larger screens
-          - Container centers content and adds max-width */}
-      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+          - max-w-7xl: maximum width for large screens (80rem/1280px)
+          - w-full: take full width up to max-w
+          - Reduced padding for better single-screen fit
+          - Container centers content and adds responsive spacing */}
+      <div className="max-w-7xl mx-auto w-full px-3 md:px-4 lg:px-6 py-4 md:py-6 lg:py-8">
         
         {/* Header Section */}
-        <header className="panel-8bit mb-6 md:mb-8">
+        <header className="panel-8bit mb-4 md:mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             {/* Title */}
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl lg:text-4xl mb-3 leading-tight">
+              <h1 className="text-xl md:text-2xl lg:text-3xl mb-2 leading-tight">
                 <span className="animate-pulse">▶</span> PATHFINDING VISUALIZER
               </h1>
               <p className="text-xs md:text-sm opacity-80 leading-relaxed">
@@ -62,8 +65,8 @@ function App() {
         </header>
 
         {/* Controls Panel */}
-        <div className="panel-8bit mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl border-b-4 border-current" style={{ marginBottom: '1.5rem', paddingBottom: '0.75rem' }}>
+        <div className="panel-8bit mb-4 md:mb-6">
+          <h2 className="text-base md:text-lg lg:text-xl border-b-4 border-current" style={{ marginBottom: '1rem', paddingBottom: '0.5rem' }}>
             ⚙️ CONTROLS
           </h2>
           
@@ -71,8 +74,8 @@ function App() {
               - grid-cols-1: 1 column on mobile
               - md:grid-cols-2: 2 columns on medium screens
               - lg:grid-cols-3: 3 columns on large screens
-              - gap-4: spacing between grid items */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              - gap-3 to gap-4: compact spacing between grid items */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
             
             {/* Algorithm Selection */}
             <div className="flex flex-col gap-2">
@@ -122,7 +125,7 @@ function App() {
                 type="range"
                 id="grid-size"
                 min="10"
-                max="50"
+                max="25"
                 value={gridSize}
                 onChange={(e) => setGridSize(Number(e.target.value))}
                 className="w-full h-8 cursor-pointer"
@@ -133,78 +136,81 @@ function App() {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
-            <button className="btn-8bit btn-primary flex-1 min-w-[120px]">
-              ▶ START
-            </button>
-            <button className="btn-8bit flex-1 min-w-[120px]">
-              ⏸ PAUSE
-            </button>
-            <button className="btn-8bit flex-1 min-w-[120px]">
-              🔄 RESET
-            </button>
-            <button className="btn-8bit btn-secondary flex-1 min-w-[120px]">
-              🎲 RANDOM MAZE
-            </button>
-            <button className="btn-8bit flex-1 min-w-[120px]">
-              🧹 CLEAR WALLS
-            </button>
-          </div>
         </div>
 
-        {/* Legend Panel */}
-        <div className="panel-8bit mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl border-b-4 border-current" style={{ marginBottom: '1.5rem', paddingBottom: '0.75rem' }}>
-            📖 LEGEND
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-green-500 border-2 border-current"></div>
-              <span>START</span>
+        {/* Grid and Info - Side by side on large screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4">
+          
+          {/* Grid Visualization Area with Action Buttons */}
+          <div className="panel-8bit lg:col-span-2">
+            <h2 className="text-base md:text-lg lg:text-xl border-b-4 border-current" style={{ marginBottom: '1rem', paddingBottom: '0.5rem' }}>
+              🗺️ GRID
+            </h2>
+            
+            {/* Action Buttons - Now with Grid */}
+            <div className="flex flex-wrap gap-2 md:gap-3 mb-4">
+              <button className="btn-8bit btn-primary flex-1 min-w-[100px] text-xs py-2">
+                ▶ START
+              </button>
+              <button className="btn-8bit flex-1 min-w-[100px] text-xs py-2">
+                ⏸ PAUSE
+              </button>
+              <button className="btn-8bit flex-1 min-w-[100px] text-xs py-2">
+                🔄 RESET
+              </button>
+              <button className="btn-8bit btn-secondary flex-1 min-w-[100px] text-xs py-2">
+                🎲 MAZE
+              </button>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-red-500 border-2 border-current"></div>
-              <span>TARGET</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gray-800 dark:bg-gray-300 border-2 border-current"></div>
-              <span>WALL</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-blue-400 border-2 border-current"></div>
-              <span>VISITED</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-yellow-400 border-2 border-current"></div>
-              <span>PATH</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-purple-400 border-2 border-current"></div>
-              <span>FRONTIER</span>
+            
+            <div className="flex justify-center items-center">
+              {/* 🎓 LEARNING: Pass gridSize as props to Grid component */}
+              <Grid rows={gridSize} cols={gridSize} />
             </div>
           </div>
-        </div>
 
-        {/* Grid Visualization Area - Placeholder */}
-        <div className="panel-8bit mb-6 md:mb-8">
-          <h2 className="text-lg md:text-xl border-b-4 border-current" style={{ marginBottom: '1.5rem', paddingBottom: '0.75rem' }}>
-            🗺️ GRID
-          </h2>
-          <div className="bg-(--color-bg) p-4 border-4 border-dashed border-current min-h-[300px] md:min-h-[400px] flex items-center justify-center">
-            <p className="text-center text-sm opacity-60">
-              GRID WILL BE RENDERED HERE<br/>
-              <span className="text-xs">({gridSize}x{gridSize} cells)</span>
-            </p>
-          </div>
-        </div>
+          {/* Right Side Panel - Legend and Algorithm Info stacked */}
+          <div className="lg:col-span-1 flex flex-col gap-4 md:gap-6">
+            
+            {/* Legend Panel */}
+            <div className="panel-8bit">
+              <h2 className="text-base md:text-lg lg:text-xl border-b-4 border-current" style={{ marginBottom: '1rem', paddingBottom: '0.5rem' }}>
+                📖 LEGEND
+              </h2>
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 md:gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-green-500 border-2 border-current"></div>
+                  <span>START</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-red-500 border-2 border-current"></div>
+                  <span>TARGET</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-gray-800 dark:bg-gray-300 border-2 border-current"></div>
+                  <span>WALL</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-blue-400 border-2 border-current"></div>
+                  <span>VISITED</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-yellow-400 border-2 border-current"></div>
+                  <span>PATH</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 md:w-6 md:h-6 bg-purple-400 border-2 border-current"></div>
+                  <span>FRONTIER</span>
+                </div>
+              </div>
+            </div>
 
-        {/* Info Panel */}
-        <div className="panel-8bit">
-          <h2 className="text-lg md:text-xl border-b-4 border-current" style={{ marginBottom: '1.5rem', paddingBottom: '0.75rem' }}>
-            ℹ️ ALGORITHM INFO
-          </h2>
-          <div className="text-xs md:text-sm leading-relaxed space-y-3">
+            {/* Info Panel */}
+            <div className="panel-8bit">
+              <h2 className="text-base md:text-lg lg:text-xl border-b-4 border-current" style={{ marginBottom: '1rem', paddingBottom: '0.5rem' }}>
+                ℹ️ ALGORITHM INFO
+              </h2>
+              <div className="text-xs md:text-sm leading-relaxed space-y-2">
             {selectedAlgorithm === 'bfs' && (
               <>
                 <p><strong>BREADTH-FIRST SEARCH (BFS)</strong></p>
@@ -255,9 +261,13 @@ function App() {
             )}
           </div>
         </div>
+          
+          </div>
+
+        </div>
 
         {/* Footer */}
-        <footer className="mt-8 text-center text-xs opacity-60">
+        <footer className="mt-6 text-center text-xs opacity-60">
           <p>MADE WITH ❤️ FOR LEARNING | PRESS START TO CONTINUE</p>
         </footer>
       </div>
