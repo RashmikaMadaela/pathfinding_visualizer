@@ -1,25 +1,36 @@
 // 🎓 LEARNING: Complex State Management
 // This component manages the entire grid state and user interactions
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Node } from '../types/grid.types'
-import { resetGrid, setWall } from '../utils/gridHelpers'
+import { resetGrid, setWall, clearWalls, clearPath } from '../utils/gridHelpers'
 import Cell from './Cell'
+import { bfs, dfs, astar, greedyBFS, uniformCostSearch, iterativeDeepening } from '../algorithms/pathfinding'
+import type { PathfindingResult } from '../algorithms/pathfinding'
 
 interface GridProps {
   rows: number
   cols: number
+  selectedAlgorithm: string
+  speed: number
+  onVisualizationStart?: () => void
+  onVisualizationEnd?: () => void
+  visualizeTrigger?: number // Change this value to trigger visualization
 }
 
 /**
  * Grid Component - Main visualization area
  * Manages the 2D grid of cells and handles all user interactions
  */
-const Grid = ({ rows, cols }: GridProps) => {
+const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVisualizationEnd, visualizeTrigger }: GridProps) => {
   // 🎓 LEARNING: Initialize grid state with helper function
   const [grid, setGrid] = useState<Node[][]>(() => resetGrid(rows, cols))
   const [isMousePressed, setIsMousePressed] = useState(false)
   const [isDrawingWall, setIsDrawingWall] = useState(true) // Track if we're adding or removing walls
+  
+  // Visualization state
+  const [isVisualizing, setIsVisualizing] = useState(false)
+  const animationTimeouts = useRef<number[]>([])
   
   // Track start and end positions
   const [startPos, setStartPos] = useState({
@@ -135,6 +146,169 @@ const Grid = ({ rows, cols }: GridProps) => {
     setIsMovingEnd(false)
   }, [])
   
+  /**
+   * Clear all pending animation timeouts
+   */
+  const clearAnimations = useCallback(() => {
+    animationTimeouts.current.forEach(timeout => clearTimeout(timeout))
+    animationTimeouts.current = []
+  }, [])
+  
+  /**
+   * Get the appropriate algorithm function based on selection
+   */
+  const getAlgorithmFunction = useCallback(() => {
+    switch (selectedAlgorithm) {
+      case 'bfs': return bfs
+      case 'dfs': return dfs
+      case 'astar': return astar
+      case 'greedy-bfs': return greedyBFS
+      case 'uniform-cost': return uniformCostSearch
+      case 'iterative-deepening': return iterativeDeepening
+      default: return bfs
+    }
+  }, [selectedAlgorithm])
+  
+  /**
+   * Animate the algorithm visualization
+   */
+  const animateAlgorithm = useCallback((visitedNodesInOrder: Node[], shortestPath: Node[]) => {
+    // Calculate delay based on speed (1 = slowest, 10 = fastest)
+    const baseDelay = 500 // milliseconds
+    const delay = baseDelay / speed
+    
+    // Animate visited nodes
+    visitedNodesInOrder.forEach((node, index) => {
+      const timeout = window.setTimeout(() => {
+        if (node.type !== 'start' && node.type !== 'end') {
+          setGrid(prevGrid => {
+            const newGrid = prevGrid.map(row => row.map(n => ({ ...n })))
+            newGrid[node.row][node.col].type = 'visited'
+            return newGrid
+          })
+        }
+      }, delay * index)
+      animationTimeouts.current.push(timeout)
+    })
+    
+    // Animate shortest path after visited nodes
+    const pathDelay = delay * visitedNodesInOrder.length
+    shortestPath.forEach((node, index) => {
+      const timeout = window.setTimeout(() => {
+        if (node.type !== 'start' && node.type !== 'end') {
+          setGrid(prevGrid => {
+            const newGrid = prevGrid.map(row => row.map(n => ({ ...n })))
+            newGrid[node.row][node.col].type = 'path'
+            return newGrid
+          })
+        }
+      }, pathDelay + delay * index * 3) // 3x slower for path animation
+      animationTimeouts.current.push(timeout)
+    })
+    
+    // Mark visualization as complete
+    const finalTimeout = window.setTimeout(() => {
+      setIsVisualizing(false)
+      onVisualizationEnd?.()
+    }, pathDelay + delay * shortestPath.length * 3 + 100)
+    animationTimeouts.current.push(finalTimeout)
+  }, [speed, onVisualizationEnd])
+  
+  /**
+   * Run the selected pathfinding algorithm
+   */
+  const visualizeAlgorithm = useCallback(() => {
+    if (isVisualizing) return
+    
+    // Clear previous animations
+    clearAnimations()
+    
+    // Reset visualization state
+    setGrid(prevGrid => {
+      const newGrid = prevGrid.map(row => 
+        row.map(node => ({
+          ...node,
+          isVisited: false,
+          distance: Infinity,
+          heuristic: Infinity,
+          previousNode: null,
+          type: node.type === 'visited' || node.type === 'path' ? 'empty' : node.type
+        }))
+      )
+      return newGrid
+    })
+    
+    setIsVisualizing(true)
+    onVisualizationStart?.()
+    
+    // Small delay to let the grid reset render
+    setTimeout(() => {
+      // Get start and end nodes
+      const startNode = grid[startPos.row][startPos.col]
+      const endNode = grid[endPos.row][endPos.col]
+      
+      // Run the algorithm
+      const algorithmFunction = getAlgorithmFunction()
+      const result: PathfindingResult = algorithmFunction(grid, startNode, endNode)
+      
+      // Animate the results
+      animateAlgorithm(result.visitedNodesInOrder, result.shortestPath)
+    }, 50)
+  }, [isVisualizing, clearAnimations, grid, startPos, endPos, getAlgorithmFunction, animateAlgorithm, onVisualizationStart])
+  
+  /**
+   * Handle Clear Walls button
+   */
+  const handleClearWalls = useCallback(() => {
+    clearAnimations()
+    setGrid(prevGrid => clearWalls(prevGrid))
+    setIsVisualizing(false)
+  }, [clearAnimations])
+  
+  /**
+   * Handle Clear Path button
+   */
+  const handleClearPath = useCallback(() => {
+    clearAnimations()
+    setGrid(prevGrid => clearPath(prevGrid))
+    setIsVisualizing(false)
+  }, [clearAnimations])
+  
+  /**
+   * Handle Reset Grid button
+   */
+  const handleReset = useCallback(() => {
+    clearAnimations()
+    const newGrid = resetGrid(rows, cols)
+    setGrid(newGrid)
+    
+    // Reset start/end positions
+    setStartPos({
+      row: Math.floor(rows / 2),
+      col: Math.floor(cols / 4)
+    })
+    setEndPos({
+      row: Math.floor(rows / 2),
+      col: Math.floor((cols * 3) / 4)
+    })
+    
+    setIsVisualizing(false)
+  }, [rows, cols, clearAnimations])
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearAnimations()
+    }
+  }, [clearAnimations])
+  
+  // Watch for visualization trigger from parent
+  useEffect(() => {
+    if (visualizeTrigger && visualizeTrigger > 0) {
+      visualizeAlgorithm()
+    }
+  }, [visualizeTrigger, visualizeAlgorithm])
+  
   // 🎓 LEARNING: Responsive Cell Size Calculation
   // Calculate cell size based on screen size and grid dimensions
   // This ensures the grid fits nicely on all devices
@@ -204,18 +378,38 @@ const Grid = ({ rows, cols }: GridProps) => {
       
       {/* Grid Control Buttons */}
       <div className="mt-4 flex gap-2 md:gap-3 flex-wrap justify-center w-full">
-        <button className="btn-8bit text-xs px-3 py-2">
+        <button 
+          onClick={handleClearWalls}
+          disabled={isVisualizing}
+          className="btn-8bit text-xs px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           🧹 Clear Walls
         </button>
-        <button className="btn-8bit text-xs px-3 py-2">
+        <button 
+          onClick={handleClearPath}
+          disabled={isVisualizing}
+          className="btn-8bit text-xs px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           🔄 Clear Path
         </button>
-        <button className="btn-8bit btn-primary text-xs px-3 py-2">
+        <button 
+          onClick={handleReset}
+          disabled={isVisualizing}
+          className="btn-8bit btn-primary text-xs px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           ♻️ Reset Grid
         </button>
       </div>
     </div>
   )
+}
+
+// Export both the component and the type for external control
+export type GridHandle = {
+  visualize: () => void
+  reset: () => void
+  clearPath: () => void
+  clearWalls: () => void
 }
 
 export default Grid

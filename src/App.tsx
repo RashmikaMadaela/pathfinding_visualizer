@@ -12,6 +12,8 @@ function App() {
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('bfs')
   const [speed, setSpeed] = useState(5)
   const [gridSize, setGridSize] = useState(20)
+  const [visualizeTrigger, setVisualizeTrigger] = useState(0)
+  const [isVisualizing, setIsVisualizing] = useState(false)
 
   // 🎓 LEARNING: useEffect Hook
   // Runs side effects (code that affects things outside React) when dependencies change
@@ -149,23 +151,45 @@ function App() {
             
             {/* Action Buttons - Now with Grid */}
             <div className="flex flex-wrap gap-2 md:gap-3 mb-4">
-              <button className="btn-8bit btn-primary flex-1 min-w-[100px] text-xs py-2">
-                ▶ START
+              <button 
+                onClick={() => setVisualizeTrigger(prev => prev + 1)}
+                disabled={isVisualizing}
+                className="btn-8bit btn-primary flex-1 min-w-[100px] text-xs py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isVisualizing ? '⏳ RUNNING...' : '▶ START'}
               </button>
-              <button className="btn-8bit flex-1 min-w-[100px] text-xs py-2">
+              <button 
+                disabled={true}
+                className="btn-8bit flex-1 min-w-[100px] text-xs py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 ⏸ PAUSE
               </button>
-              <button className="btn-8bit flex-1 min-w-[100px] text-xs py-2">
+              <button 
+                onClick={() => setVisualizeTrigger(0)}
+                disabled={isVisualizing}
+                className="btn-8bit flex-1 min-w-[100px] text-xs py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 🔄 RESET
               </button>
-              <button className="btn-8bit btn-secondary flex-1 min-w-[100px] text-xs py-2">
+              <button 
+                disabled={true}
+                className="btn-8bit btn-secondary flex-1 min-w-[100px] text-xs py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 🎲 MAZE
               </button>
             </div>
             
             <div className="flex justify-center items-center">
               {/* 🎓 LEARNING: Pass gridSize as props to Grid component */}
-              <Grid rows={gridSize} cols={gridSize} />
+              <Grid 
+                rows={gridSize} 
+                cols={gridSize}
+                selectedAlgorithm={selectedAlgorithm}
+                speed={speed}
+                visualizeTrigger={visualizeTrigger}
+                onVisualizationStart={() => setIsVisualizing(true)}
+                onVisualizationEnd={() => setIsVisualizing(false)}
+              />
             </div>
           </div>
 
