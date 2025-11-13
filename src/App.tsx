@@ -3,9 +3,6 @@ import './index.css'
 import Grid from './components/Grid'
 
 function App() {
-  // 🎓 LEARNING: useState Hook
-  // This creates a "state variable" that React tracks. When it changes, React re-renders the component.
-  // [darkMode] is the current value, [setDarkMode] is the function to update it
   const [darkMode, setDarkMode] = useState(false)
   
   // State for algorithm selection
@@ -13,7 +10,11 @@ function App() {
   const [speed, setSpeed] = useState(5)
   const [gridSize, setGridSize] = useState(20)
   const [visualizeTrigger, setVisualizeTrigger] = useState(0)
+  const [pauseTrigger, setPauseTrigger] = useState(0)
+  const [stopTrigger, setStopTrigger] = useState(0)
   const [isVisualizing, setIsVisualizing] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [canPause, setCanPause] = useState(false)
 
   // 🎓 LEARNING: useEffect Hook
   // Runs side effects (code that affects things outside React) when dependencies change
@@ -92,8 +93,6 @@ function App() {
               >
                 <option value="bfs">BFS</option>
                 <option value="dfs">DFS</option>
-                <option value="uniform-cost">Uniform Cost</option>
-                <option value="iterative-deepening">Iterative Deep.</option>
                 <option value="greedy-bfs">Greedy BFS</option>
                 <option value="astar">A* Search</option>
               </select>
@@ -159,23 +158,18 @@ function App() {
                 {isVisualizing ? '⏳ RUNNING...' : '▶ START'}
               </button>
               <button 
-                disabled={true}
+                onClick={() => setPauseTrigger(prev => prev + 1)}
+                disabled={!canPause}
                 className="btn-8bit flex-1 min-w-[100px] text-xs py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ⏸ PAUSE
+                {isPaused ? '▶ RESUME' : '⏸ PAUSE'}
               </button>
               <button 
-                onClick={() => setVisualizeTrigger(0)}
-                disabled={isVisualizing}
-                className="btn-8bit flex-1 min-w-[100px] text-xs py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                🔄 RESET
-              </button>
-              <button 
-                disabled={true}
+                onClick={() => setStopTrigger(prev => prev + 1)}
+                disabled={!isVisualizing}
                 className="btn-8bit btn-secondary flex-1 min-w-[100px] text-xs py-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                🎲 MAZE
+                ⏹ STOP
               </button>
             </div>
             
@@ -187,8 +181,14 @@ function App() {
                 selectedAlgorithm={selectedAlgorithm}
                 speed={speed}
                 visualizeTrigger={visualizeTrigger}
+                pauseTrigger={pauseTrigger}
+                stopTrigger={stopTrigger}
                 onVisualizationStart={() => setIsVisualizing(true)}
                 onVisualizationEnd={() => setIsVisualizing(false)}
+                onPauseStateChange={(paused, canPauseNow) => {
+                  setIsPaused(paused)
+                  setCanPause(canPauseNow)
+                }}
               />
             </div>
           </div>
@@ -249,22 +249,6 @@ function App() {
                 <p>✓ Uses less memory (stack)</p>
                 <p>✓ Good for maze generation</p>
                 <p>✗ Does NOT guarantee shortest path</p>
-              </>
-            )}
-            {selectedAlgorithm === 'uniform-cost' && (
-              <>
-                <p><strong>UNIFORM COST SEARCH</strong></p>
-                <p>✓ Guarantees shortest path (weighted)</p>
-                <p>✓ Considers edge costs</p>
-                <p>✗ Slower than A* with good heuristic</p>
-              </>
-            )}
-            {selectedAlgorithm === 'iterative-deepening' && (
-              <>
-                <p><strong>ITERATIVE DEEPENING</strong></p>
-                <p>✓ Memory efficient like DFS</p>
-                <p>✓ Complete like BFS</p>
-                <p>✗ Revisits nodes multiple times</p>
               </>
             )}
             {selectedAlgorithm === 'greedy-bfs' && (

@@ -1,11 +1,8 @@
-// 🎓 LEARNING: Complex State Management
-// This component manages the entire grid state and user interactions
-
 import { useState, useCallback, useEffect, useRef } from 'react'
 import type { Node } from '../types/grid.types'
-import { resetGrid, setWall, clearWalls, clearPath } from '../utils/gridHelpers'
+import { resetGrid, setWall, clearWalls } from '../utils/gridHelpers'
 import Cell from './Cell'
-import { bfs, dfs, astar, greedyBFS, uniformCostSearch, iterativeDeepening } from '../algorithms/pathfinding'
+import { bfs, dfs, astar, greedyBFS } from '../algorithms/pathfinding'
 import type { PathfindingResult } from '../algorithms/pathfinding'
 
 interface GridProps {
@@ -16,21 +13,32 @@ interface GridProps {
   onVisualizationStart?: () => void
   onVisualizationEnd?: () => void
   visualizeTrigger?: number // Change this value to trigger visualization
+  pauseTrigger?: number // Trigger pause
+  stopTrigger?: number // Trigger stop
+  onPauseStateChange?: (isPaused: boolean, canPause: boolean) => void
 }
 
 /**
  * Grid Component - Main visualization area
  * Manages the 2D grid of cells and handles all user interactions
  */
-const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVisualizationEnd, visualizeTrigger }: GridProps) => {
-  // 🎓 LEARNING: Initialize grid state with helper function
+const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVisualizationEnd, visualizeTrigger, pauseTrigger, stopTrigger, onPauseStateChange }: GridProps) => {
+  // Grid state
   const [grid, setGrid] = useState<Node[][]>(() => resetGrid(rows, cols))
   const [isMousePressed, setIsMousePressed] = useState(false)
   const [isDrawingWall, setIsDrawingWall] = useState(true) // Track if we're adding or removing walls
   
   // Visualization state
   const [isVisualizing, setIsVisualizing] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [canPause, setCanPause] = useState(false)
+  const [animationCompleted, setAnimationCompleted] = useState(false)
   const animationTimeouts = useRef<number[]>([])
+  const currentAnimationIndex = useRef<number>(0)
+  const animationData = useRef<{
+    visitedNodes: Node[]
+    shortestPath: Node[]
+  } | null>(null)
   
   // Track start and end positions
   const [startPos, setStartPos] = useState({
@@ -46,7 +54,6 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
   const [isMovingStart, setIsMovingStart] = useState(false)
   const [isMovingEnd, setIsMovingEnd] = useState(false)
   
-  // 🎓 LEARNING: useEffect Hook
   // Reset the grid when rows or cols change
   useEffect(() => {
     const newGrid = resetGrid(rows, cols)
@@ -62,11 +69,7 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
       col: Math.floor((cols * 3) / 4)
     })
   }, [rows, cols]) // Runs whenever rows or cols change
-  
-  // 🎓 LEARNING: useCallback Hook
-  // Memoizes functions to prevent unnecessary re-renders
-  // The function only recreates if dependencies change
-  
+
   /**
    * Handles mouse down on a cell
    * Starts wall drawing or initiates moving start/end node
@@ -152,7 +155,140 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
   const clearAnimations = useCallback(() => {
     animationTimeouts.current.forEach(timeout => clearTimeout(timeout))
     animationTimeouts.current = []
+    currentAnimationIndex.current = 0
+    animationData.current = null
   }, [])
+  
+  /**
+   * Stop the current visualization completely
+   */
+  const stopVisualization = useCallback(() => {
+    // Clear all timeouts first
+    clearAnimations()
+    
+    // Reset visualization state
+    setIsVisualizing(false)
+    setIsPaused(false)
+    setCanPause(false)
+    
+    // Keep the current visualization on screen (don't clear the grid)
+    // This way users can see the final state when they stop
+    setAnimationCompleted(true)
+  }, [clearAnimations])
+  
+  /**
+   * Pause the current visualization
+   */
+  const pauseVisualization = useCallback(() => {
+    if (!canPause || !isVisualizing) return
+    setIsPaused(true)
+    clearAnimations()
+  }, [canPause, isVisualizing, clearAnimations])
+  
+  /**
+   * Resume the paused visualization
+   */
+  const resumeVisualization = useCallback(() => {
+    if (!isPaused || !animationData.current) return
+    
+    setIsPaused(false)
+    setCanPause(true)
+    
+    const { visitedNodes, shortestPath } = animationData.current
+    const startIndex = currentAnimationIndex.current
+    
+    // Calculate delay based on speed
+    const baseDelay = 500
+    const delay = baseDelay / speed
+    
+    // Resume visited nodes animation from where we left off
+    for (let i = startIndex; i < visitedNodes.length; i++) {
+      const node = visitedNodes[i]
+      const timeout = window.setTimeout(() => {
+        currentAnimationIndex.current = i + 1
+        
+        // Get the actual node from the current grid
+        setGrid(prevGrid => {
+          const newGrid = prevGrid.map(row => row.map(n => ({ ...n })))
+          const currentNode = newGrid[node.row][node.col]
+          
+          // Mark current node as visited if it's not start/end
+          if (currentNode.type !== 'start' && currentNode.type !== 'end') {
+            currentNode.type = 'visited'
+          }
+          
+          // Clear previous frontiers
+          for (const row of newGrid) {
+            for (const n of row) {
+              if (n.type === 'frontier') {
+                n.type = 'empty'
+              }
+            }
+          }
+          
+          // Show frontier nodes
+          const frontierCount = Math.min(8, visitedNodes.length - i - 1)
+          for (let j = 1; j <= frontierCount; j++) {
+            const nextNode = visitedNodes[i + j]
+            if (nextNode) {
+              const frontierNode = newGrid[nextNode.row][nextNode.col]
+              if (frontierNode.type !== 'start' && frontierNode.type !== 'end' && frontierNode.type !== 'visited') {
+                frontierNode.type = 'frontier'
+              }
+            }
+          }
+          
+          return newGrid
+        })
+      }, delay * (i - startIndex))
+      animationTimeouts.current.push(timeout)
+    }
+    
+    // Clear frontiers before path animation
+    const clearFrontiersDelay = delay * (visitedNodes.length - startIndex)
+    const clearFrontiersTimeout = window.setTimeout(() => {
+      setGrid(prevGrid => {
+        const newGrid = prevGrid.map(row => row.map(n => ({ ...n })))
+        for (const row of newGrid) {
+          for (const node of row) {
+            if (node.type === 'frontier') {
+              node.type = 'empty'
+            }
+          }
+        }
+        return newGrid
+      })
+    }, clearFrontiersDelay)
+    animationTimeouts.current.push(clearFrontiersTimeout)
+    
+    // Animate shortest path
+    const pathDelay = clearFrontiersDelay + 50
+    shortestPath.forEach((node, index) => {
+      const timeout = window.setTimeout(() => {
+        setGrid(prevGrid => {
+          const newGrid = prevGrid.map(row => row.map(n => ({ ...n })))
+          const pathNode = newGrid[node.row][node.col]
+          if (pathNode.type !== 'start' && pathNode.type !== 'end') {
+            pathNode.type = 'path'
+          }
+          return newGrid
+        })
+      }, pathDelay + delay * index * 3)
+      animationTimeouts.current.push(timeout)
+    })
+    
+    // Complete animation
+    const finalTimeout = window.setTimeout(() => {
+      setIsVisualizing(false)
+      setIsPaused(false)
+      setCanPause(false)
+      animationData.current = null
+      setAnimationCompleted(true)
+      currentAnimationIndex.current = 0
+      onVisualizationEnd?.()
+    }, pathDelay + delay * shortestPath.length * 3 + 100)
+    animationTimeouts.current.push(finalTimeout)
+  }, [isPaused, speed, onVisualizationEnd])
   
   /**
    * Get the appropriate algorithm function based on selection
@@ -163,27 +299,56 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
       case 'dfs': return dfs
       case 'astar': return astar
       case 'greedy-bfs': return greedyBFS
-      case 'uniform-cost': return uniformCostSearch
-      case 'iterative-deepening': return iterativeDeepening
       default: return bfs
     }
   }, [selectedAlgorithm])
   
   /**
-   * Animate the algorithm visualization
+   * Animate the algorithm visualization with frontier display
    */
   const animateAlgorithm = useCallback((visitedNodesInOrder: Node[], shortestPath: Node[]) => {
+    // Store animation data for pause/resume
+    animationData.current = {
+      visitedNodes: visitedNodesInOrder,
+      shortestPath: shortestPath
+    }
+    
     // Calculate delay based on speed (1 = slowest, 10 = fastest)
     const baseDelay = 500 // milliseconds
     const delay = baseDelay / speed
     
-    // Animate visited nodes
+    setCanPause(true)
+    
+    // Animate visited nodes with frontier preview
     visitedNodesInOrder.forEach((node, index) => {
       const timeout = window.setTimeout(() => {
+        currentAnimationIndex.current = index
+        
+        // Mark current node as visited
         if (node.type !== 'start' && node.type !== 'end') {
           setGrid(prevGrid => {
             const newGrid = prevGrid.map(row => row.map(n => ({ ...n })))
             newGrid[node.row][node.col].type = 'visited'
+            
+            // Show frontier nodes (next nodes to be explored)
+            // Clear previous frontiers
+            for (const row of newGrid) {
+              for (const n of row) {
+                if (n.type === 'frontier') {
+                  n.type = 'empty'
+                }
+              }
+            }
+            
+            // Mark upcoming nodes as frontier (next 5-10 nodes)
+            const frontierCount = Math.min(8, visitedNodesInOrder.length - index - 1)
+            for (let i = 1; i <= frontierCount; i++) {
+              const nextNode = visitedNodesInOrder[index + i]
+              if (nextNode && nextNode.type !== 'start' && nextNode.type !== 'end' && nextNode.type !== 'visited') {
+                newGrid[nextNode.row][nextNode.col].type = 'frontier'
+              }
+            }
+            
             return newGrid
           })
         }
@@ -191,8 +356,24 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
       animationTimeouts.current.push(timeout)
     })
     
+    // Clear frontiers before animating path
+    const clearFrontiersTimeout = window.setTimeout(() => {
+      setGrid(prevGrid => {
+        const newGrid = prevGrid.map(row => row.map(n => ({ ...n })))
+        for (const row of newGrid) {
+          for (const node of row) {
+            if (node.type === 'frontier') {
+              node.type = 'empty'
+            }
+          }
+        }
+        return newGrid
+      })
+    }, delay * visitedNodesInOrder.length)
+    animationTimeouts.current.push(clearFrontiersTimeout)
+    
     // Animate shortest path after visited nodes
-    const pathDelay = delay * visitedNodesInOrder.length
+    const pathDelay = delay * visitedNodesInOrder.length + 50
     shortestPath.forEach((node, index) => {
       const timeout = window.setTimeout(() => {
         if (node.type !== 'start' && node.type !== 'end') {
@@ -209,6 +390,10 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
     // Mark visualization as complete
     const finalTimeout = window.setTimeout(() => {
       setIsVisualizing(false)
+      setIsPaused(false)
+      setCanPause(false)
+      animationData.current = null
+      setAnimationCompleted(true)
       onVisualizationEnd?.()
     }, pathDelay + delay * shortestPath.length * 3 + 100)
     animationTimeouts.current.push(finalTimeout)
@@ -218,7 +403,8 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
    * Run the selected pathfinding algorithm
    */
   const visualizeAlgorithm = useCallback(() => {
-    if (isVisualizing) return
+    // Prevent starting a new visualization if one is running or the last one completed
+    if (isVisualizing || animationCompleted) return
     
     // Clear previous animations
     clearAnimations()
@@ -254,24 +440,18 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
       // Animate the results
       animateAlgorithm(result.visitedNodesInOrder, result.shortestPath)
     }, 50)
-  }, [isVisualizing, clearAnimations, grid, startPos, endPos, getAlgorithmFunction, animateAlgorithm, onVisualizationStart])
+  }, [isVisualizing, clearAnimations, grid, startPos, endPos, getAlgorithmFunction, animateAlgorithm, onVisualizationStart, animationCompleted])
   
   /**
    * Handle Clear Walls button
    */
   const handleClearWalls = useCallback(() => {
     clearAnimations()
+    setIsVisualizing(false)
+    setIsPaused(false)
+    setCanPause(false)
+    setAnimationCompleted(false)
     setGrid(prevGrid => clearWalls(prevGrid))
-    setIsVisualizing(false)
-  }, [clearAnimations])
-  
-  /**
-   * Handle Clear Path button
-   */
-  const handleClearPath = useCallback(() => {
-    clearAnimations()
-    setGrid(prevGrid => clearPath(prevGrid))
-    setIsVisualizing(false)
   }, [clearAnimations])
   
   /**
@@ -279,6 +459,11 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
    */
   const handleReset = useCallback(() => {
     clearAnimations()
+    setIsVisualizing(false)
+    setIsPaused(false)
+    setCanPause(false)
+    setAnimationCompleted(false)
+    
     const newGrid = resetGrid(rows, cols)
     setGrid(newGrid)
     
@@ -291,8 +476,6 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
       row: Math.floor(rows / 2),
       col: Math.floor((cols * 3) / 4)
     })
-    
-    setIsVisualizing(false)
   }, [rows, cols, clearAnimations])
   
   // Cleanup on unmount
@@ -308,6 +491,29 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
       visualizeAlgorithm()
     }
   }, [visualizeTrigger, visualizeAlgorithm])
+  
+  // Watch for pause trigger
+  useEffect(() => {
+    if (pauseTrigger && pauseTrigger > 0) {
+      if (isPaused) {
+        resumeVisualization()
+      } else {
+        pauseVisualization()
+      }
+    }
+  }, [pauseTrigger, isPaused, pauseVisualization, resumeVisualization])
+  
+  // Watch for stop trigger
+  useEffect(() => {
+    if (stopTrigger && stopTrigger > 0) {
+      stopVisualization()
+    }
+  }, [stopTrigger, stopVisualization])
+  
+  // Notify parent of pause state changes
+  useEffect(() => {
+    onPauseStateChange?.(isPaused, canPause)
+  }, [isPaused, canPause, onPauseStateChange])
   
   // 🎓 LEARNING: Responsive Cell Size Calculation
   // Calculate cell size based on screen size and grid dimensions
@@ -386,13 +592,6 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
           🧹 Clear Walls
         </button>
         <button 
-          onClick={handleClearPath}
-          disabled={isVisualizing}
-          className="btn-8bit text-xs px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          🔄 Clear Path
-        </button>
-        <button 
           onClick={handleReset}
           disabled={isVisualizing}
           className="btn-8bit btn-primary text-xs px-3 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -408,7 +607,6 @@ const Grid = ({ rows, cols, selectedAlgorithm, speed, onVisualizationStart, onVi
 export type GridHandle = {
   visualize: () => void
   reset: () => void
-  clearPath: () => void
   clearWalls: () => void
 }
 
